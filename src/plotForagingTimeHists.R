@@ -7,6 +7,7 @@
 
 plotForagingTimeHists <- function(data, scientificName = NULL, yMax = 10000){
 
+    library(dplyr)
     o <- data
     if(!is.null(scientificName)){
         o <- filter(data, scientific_name == scientificName)
@@ -14,16 +15,16 @@ plotForagingTimeHists <- function(data, scientificName = NULL, yMax = 10000){
 
     #winter hist of foraging times
     winter <- filter(o, season == "1")
-    hist(winter$hour, ylim = c(0,yMax), main = paste("winter foraging hours of ", scientificName))
+    hist(winter$est_hour, ylim = c(0,yMax), main = paste("winter foraging hours of ", scientificName))
 
     #winter hist of foraging times
     spring <- filter(o, season == "2")
-    hist(spring$hour, ylim = c(0,yMax), main = paste("spring foraging hours of ", scientificName))
+    hist(spring$est_hour, ylim = c(0,yMax), main = paste("spring foraging hours of ", scientificName))
 
 
     summer <- filter(o, season == "3")
-    hist(summer$hour, ylim = c(0,yMax), main = paste("summer foraging hours of ", scientificName))
+    hist(summer$est_hour, ylim = c(0,yMax), main = paste("summer foraging hours of ", scientificName))
 
     fall <- filter(o, season == "4")
-    hist(fall$hour, ylim = c(0,yMax), main = paste("fall foraging hours of ", scientificName))
+    hist(fall$est_hour, ylim = c(0,yMax), main = paste("fall foraging hours of ", scientificName))
 }

@@ -1,16 +1,17 @@
+
 #import all usa ant observations
 usa_ants <- read.csv("data/usa_ants.csv")
-View(usa_ants)
-
-#remove observations with no time observed
-usa_ants <- usa_ants[!is.na(usa_ants$time_observed_at),]
 
 #add hour and season data to dataframe
 source("src/addHourSeason.R")
 usa_ants <- addHourSeason(usa_ants)
+View(usa_ants)
+
+#remove observations with no time observed
+usa_ants <- usa_ants[!(usa_ants$time_observed_at == ""),]
 
 #remove observations with 0 for hour
-usa_ants <- usa_ants[usa_ants$hour != 0,]
+#usa_ants <- usa_ants[usa_ants$hour != 0,]
 
 #filter for one common species
 library(dplyr)
@@ -40,3 +41,4 @@ cor.test(usa_ants$hour, usa_ants$latitude)
 # ideas that have come up
 # use covariance matrix to adjust foraging times given baseline iNat activity
 # given all ants, see if other ants are found in location at time
+# download baseline iNat activity and randomly sample it to create baseline
