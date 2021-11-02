@@ -1,0 +1,22 @@
+main_tasks:
+  - text: 'Is the ant a male/queen(wings visible)?'
+    variable: 'is_male_or_queen'
+    responses:
+      - text: '"p": ant is male or queen'
+        action: keypress{p ~ Y}
+      - text: '"a": ant is not male or queen'
+        action: keypress{a ~ N}
+  - text: 'Is the observation of a nest rather than an individual or group or foragers?'
+    variable: 'is_nest'
+    responses:
+      - text: '"p": observation is a nest'
+        action: keypress{p ~ Y}
+      - text: '"a": observation is a forager/group of foragers'
+        action: keypress{a ~ N}
+  - text: 'Does the image appear to be taken during the night?'
+    variable: 'is_night'
+    responses:
+      - text: '"p": yes, appears to be night'
+        action: keypress{p ~ Y}
+      - text: '"a": no, appears to be day'
+        action: keypress{a ~ N}
