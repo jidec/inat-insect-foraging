@@ -17,6 +17,7 @@ usa_ants <- usa_ants[!(usa_ants$time_observed_at == ""),]
 library(dplyr)
 campo_p <- filter(usa_ants, scientific_name == "Camponotus pennsylvanicus")
 
+
 #create foraging time plots
 source("src/plotForagingTimeHists.R")
 plotForagingTimeHists(usa_ants)
@@ -37,6 +38,13 @@ plotForagingTimeRasters(usa_ants, scientificName = "Solenopsis invicta",
 
 #quick cor test between hour and lat
 cor.test(usa_ants$hour, usa_ants$latitude)
+
+#assess research grade vs non data
+rg_ants <- filter(usa_ants, quality_grade == "research")
+nrow(usa_ants)#139919 samples
+nrow(rg_ants)#67617 samples
+nrow(campo_p) #10196 samples
+nrow(filter(campo_p, quality_grade == "research")) #8866 samples
 
 # ideas that have come up
 # use covariance matrix to adjust foraging times given baseline iNat activity
