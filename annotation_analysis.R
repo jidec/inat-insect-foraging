@@ -35,4 +35,3 @@ sum(sinv_annotations$is_multiple == "Y") / nrow(sinv_annotations)
 sum(pimp_annotations$is_multiple == "Y") / nrow(pimp_annotations)
 #annotations <- rbind(annotations, read.csv("data/ia_annotations/C_penn_Set1_MH.csv"))
 
-

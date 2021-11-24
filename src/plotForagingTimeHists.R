@@ -15,16 +15,16 @@ plotForagingTimeHists <- function(data, scientificName = NULL, yMax = 10000){
 
     #winter hist of foraging times
     winter <- filter(o, season == "1")
-    hist(winter$est_hour, ylim = c(0,yMax), main = paste("winter foraging hours of ", scientificName))
+    hist(winter$local_hour, ylim = c(0,yMax), main = paste("winter foraging hours of ", scientificName))
 
     #winter hist of foraging times
     spring <- filter(o, season == "2")
-    hist(spring$est_hour, ylim = c(0,yMax), main = paste("spring foraging hours of ", scientificName))
+    hist(spring$local_hour, ylim = c(0,yMax), main = paste("spring foraging hours of ", scientificName))
 
 
     summer <- filter(o, season == "3")
-    hist(summer$est_hour, ylim = c(0,yMax), main = paste("summer foraging hours of ", scientificName))
+    hist(summer$local_hour, ylim = c(0,yMax), main = paste("summer foraging hours of ", scientificName))
 
     fall <- filter(o, season == "4")
-    hist(fall$est_hour, ylim = c(0,yMax), main = paste("fall foraging hours of ", scientificName))
+    hist(fall$local_hour, ylim = c(0,yMax), main = paste("fall foraging hours of ", scientificName))
 }

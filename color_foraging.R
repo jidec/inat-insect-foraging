@@ -25,4 +25,11 @@ ant_species_colors$scientific_name <- ant_species_colors$term
 usa_ant_species <- merge(usa_ant_species, ant_species_colors, by = "scientific_name")
 
 # test correlation
-cor.test(usa_ant_species$hour_mode, usa_ant_species$meanlightness)
+cor.test(usa_ant_species_n100, usa_ant_species_n100$meanlightness)
+
+#test with night coding
+
+usa_ant_species_n50$propNight
+
+View(usa_ant_species_n100)
+cor.test(usa_ant_species_n50$propNight, usa_ant_species_n50$meanlightness)

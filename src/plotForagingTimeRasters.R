@@ -5,28 +5,55 @@
 
 # yMax is the y axis limit
 
-plotForagingTimeRasters <- function(data, scientificName = NULL, season_num = "1", raster_res = 2, raster_function = getmode){
+plotForagingTimeRasters <- function(data, scientificName = NULL, season_num = "1", raster_res = 2, raster_function = getmode,  min_cell_sample = 100){
 
   library(rgdal)
   library(raster)
   library(maps)
   library(dplyr)
+  library(RColorBrewer)
 
+  # data <- usa_ants
+  # scientificName <- "Camponotus pennsylvanicus"
+  # season_num <- 3
+  # raster_res <- 2
+  # raster_function <- mean
+
+  if(!is.null(scientificName)){
   data <- filter(data, scientific_name == scientificName)
-  # add coords & projection
+  }
+
+  if(season_num != "0"){
   data <- filter(data, season == season_num)
+  }
+
+  # add coords & projection
   coordinates(data) <- cbind(data$longitude, data$latitude)
   projection(data) <- "+init=EPSG:4326"
 
   # create raster
   r <- raster(data, resolution = raster_res) #2
 
-  # rasterize using getmode
-  r <- rasterize(data,r, field = data$hour, fun = raster_function)
-  #r <- rasterize(s,r,fun= 'count')
+  # rasterize
+  r <- rasterize(data,r, field = data$midday_dist, fun = raster_function)
+  rcount <- rasterize(data,r,field = data$midday_dist, fun= 'count')
 
+  # remove squares of low sample size using count raster
+  for (i in 1:10){
+      for(j in 1:18){
+          if(!is.na(rcount[i,j]))
+          {
+          if(rcount[i,j] < min_cell_sample)
+          {
+              r[i,j] <- NA
+          }
+          }
+      }
+  }
+
+  pal <- colorRampPalette(c("white","black"))
   #can use or not use breaks, which bucket foraging times when plotting
-  plot(r, axes = FALSE, breaks = c(7,12,19,24), col = terrain.colors(4))
+  plot(r, col = pal(7))# ylim <- c(20,60), xlim <- c(-130,-70)) #col = terrain.colors(4)) #breaks = c(7,11,18,24),axes = FALSE,
   #plot USA shapefile on top
   shape <- readOGR(dsn = "data/cb_2018_us_state_5m")
   plot(shape, bg="transparent", add=TRUE)
