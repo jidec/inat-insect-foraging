@@ -36,6 +36,7 @@ addHourSeason <- function(data){
     # Summer is June - August, Fall is September - November
     out$season <- quarter(out$datetimes, with_year = FALSE, fiscal_start = 12)
     out$season <- as.factor(out$season)
+    #usa_ants$season <- as.factor(usa_ants$season)
 
     return(out)
 }

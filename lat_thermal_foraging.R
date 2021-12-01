@@ -12,6 +12,14 @@ cor.test(campo_a$midday_dist, campo_a$latitude)
 library(lme4)
 mixed <- lmer(midday_dist ~ latitude + season + (1|taxon_subfamily_name/taxon_genus_name/scientific_name), data = usa_ants)
 summary(mixed)
+#incorporate day length bias as covariate
+#drop winter seasons
+#just bio1 from worldclim
+#continuous spring to fall values
+#consider interannual variation
+#using annotations to vet species
+#gen 240 watt hours
+#leds at 60 watts - 4 hrs
 
 #also do variance partitioning
 library(ape)
@@ -25,7 +33,6 @@ plotForagingTimeRasters(usa_ants,
                         season_num = "0", raster_res = 2, raster_function = mean)
 plotForagingTimeRasters(usa_ants, scientificName = "Camponotus pennsylvanicus",
                         season_num = "0", raster_res = 1, raster_function = mean, min_cell_sample = 30)
-
 plotForagingTimeRasters(usa_ants, scientificName = "Camponotus castaneus",
                         season_num = "0", raster_res = 1, raster_function = mean, min_cell_sample = 30)
 

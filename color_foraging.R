@@ -27,9 +27,11 @@ usa_ant_species <- merge(usa_ant_species, ant_species_colors, by = "scientific_n
 # test correlation
 cor.test(usa_ant_species_n100, usa_ant_species_n100$meanlightness)
 
-#test with night coding
-
+# test with night coding
+# get season adjusted night coding
+# see if coded night foragers are actually night foragers
 usa_ant_species_n50$propNight
 
+# are night foraging ants geographically structured?
 View(usa_ant_species_n100)
 cor.test(usa_ant_species_n50$propNight, usa_ant_species_n50$meanlightness)
