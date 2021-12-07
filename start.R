@@ -8,11 +8,19 @@ install.packages("RColorBrewer")
 install.packages("lme4")
 install.packages("ape")
 
+library("dplyr")
+library("lubridate")
+library("rgdal")
+library("maps")
+library("raster")
+library("RColorBrewer")
+library("lme4")
+library("ape")
+
 #-----------------------
 # PREP MAIN DATAFRAMES
 #import all usa ant observations
 usa_ants <- read.csv("data/usa_ants.csv")
-View(usa_ants)
 
 #add hour and season data to dataframe
 source("src/addHourSeason.R")
@@ -80,8 +88,9 @@ hist(usa_ant_species_n100$meanMD)
 # similarly summarize to genus
 usa_ant_genera <- usa_ants %>%
     group_by(taxon_genus_name) %>%
-    summarise(meanHour = mean(local_hour), modeHour = Mode(local_hour), sdHour = sd(local_hour), n = n())
-
+    summarise(meanHour = mean(local_hour), modeHour = Mode(local_hour), sdHour = sd(local_hour), n = n(), meanMD = mean(midday_dist),
+              propNight = sum(is_night, na.rm = TRUE) / n(), latCor = cor(midday_dist,latitude))
+View(usa_ant_genera)
 usa_ant_genera_n100 <- filter(usa_ant_genera, n >= 100)
 
 # after start.R:
