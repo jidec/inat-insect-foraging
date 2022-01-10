@@ -7,6 +7,7 @@ install.packages("raster")
 install.packages("RColorBrewer")
 install.packages("lme4")
 install.packages("ape")
+install.packages("phytools")
 
 library("dplyr")
 library("lubridate")
@@ -16,6 +17,7 @@ library("raster")
 library("RColorBrewer")
 library("lme4")
 library("ape")
+library("phytools")
 
 #-----------------------
 # PREP MAIN DATAFRAMES
