@@ -36,6 +36,22 @@ plotForagingTimeRasters(usa_ants, scientificName = "Camponotus pennsylvanicus",
 plotForagingTimeRasters(usa_ants, scientificName = "Camponotus castaneus",
                         season_num = "0", raster_res = 1, raster_function = mean, min_cell_sample = 30)
 
+# take a look at adj foraging times
+adj_usa_ants$season <- as.factor(adj_usa_ants$season)
+lin <- lm(local_hour_adj ~ latitude + season, data = adj_usa_ants)
 
+# species
+s <- "Camponotus americanus"
+f <- dplyr::filter(adj_usa_ants, species == s)
+lin <- lm(midday_dist ~ latitude + season_actual, data = f)
+summary(lin)
 
+f <- dplyr::filter(usa_ants, scientific_name == s)
+lin <- lm(midday_dist ~ latitude + season, data = f)
+summary(lin)
 
+# all usa ants
+lin <- lm(midday_dist ~ latitude + season_actual + species, data = adj_usa_ants)
+summary(lin)
+lin <- lm(midday_dist ~ latitude + season, data = usa_ants)
+summary(lin)
