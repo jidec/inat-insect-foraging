@@ -1,0 +1,11 @@
+morphosource_id,genus,species,roundness,flatness,elongation,thickness_wack,unsmoothed_surface_area,smoothed_surface_area,roughness_factor,folder_order,species lightness mean,species lightness sd,genus lightness mean,genus lightness sd,species orangeness mean
+22645,Myrmoteras,Myrmoteras iriodum,,,,11.3945,,,1,1,0.52,0.035,,,0.033621
+53849,Mystrium,Mystrium camillae,0.042,1.58,1.1,16.08,33815,23883,1.415860654,2,0.418,0.045,,,0.3244304
+53853,Stigmatomma,Stigmatomma pallipes,0.0789,1.66,1.29,8.02,110410,93573,1.1799343828,3,0.399,0.081,,,0.2208751
+162052,Cephalotes,Cephalotes clypeatus,0.06673,2.02,1.18,0.04,1.22193,1.09,1.1210366972,4,0.457,0.019,,,0.3708224
+162055,Cephalotes,Cephalotes atratus,0.0758,1.729,1.077,,2.09,1.75,1.1942857143,5,0.339,0.103,,,0
+162058,Strumigenys,Strumigenys longispinosa,0.107,1.74,1.57,,0.3,0.211,1.4218009479,6,,,,,
+162060,Neoponera,Neoponera crenata,,1.33,1.31,0.04,1.58,1.26,1.253968254,7,0.372,0.079,,,0.04348201
+162062,Neivamyrmex ,Neivamyrmex pilosus,0.0837,1.36,1.4,0.0161,0.279,0.22,1.2681818182,8,0.346,0.055,,,0.03120928
+162064,Camponotus,Camponotus pennsylvanicus,0.063,1.5,1.12,0.032,1.04,0.83,1.2530120482,9,0.347,0.018,,,0
+162068,Colobopsis,Colobopsis etiolata,0.07,1.37,1.15,0.0313,0.425,0.33,1.2878787879,10,0.4879,0.063,,,0.3791017

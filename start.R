@@ -8,7 +8,8 @@ install.packages("RColorBrewer")
 install.packages("lme4")
 install.packages("ape")
 install.packages("phytools")
-
+install.packages("tidyr")
+install.packages("data.table")
 library("dplyr")
 library("lubridate")
 library("rgdal")
@@ -18,56 +19,57 @@ library("RColorBrewer")
 library("lme4")
 library("ape")
 library("phytools")
+library("tidyr")
+library("data.table")
 
-#-----------------------
-# PREP MAIN DATAFRAMES
-#import all usa ant observations
-usa_ants <- read.csv("data/usa_ants.csv")
+source("src/prepGBIFiNatData.R")
 
-#add hour and season data to dataframe
-source("src/addHourSeason.R")
-usa_ants <- addHourSeason(usa_ants)
-View(usa_ants)
+# prep usa_ants
+usa_ants <- prepGBIFiNatData("data/usa_ants_inat_gbif.csv")
+usa_bfs <- prepGBIFiNatData("data/usa_butterflies_inat_gbif.csv")
 
-#remove observations with no time observed
-usa_ants <- usa_ants[!(usa_ants$time_observed_at == ""),]
+# prep usa_insects
+usa_insects <- prepGBIFiNatData("data/usa_insects_inat_gbif.csv")
 
-#remove non research grade observations
-usa_ants <- filter(usa_ants, quality_grade == "research")
+# download daymet data if haven't done so already
+source("src/downloadDaymetData.R")
+#daymet_data <- downloadDaymetData(93)
 
-#remove ants identified only to genus, not to species
-usa_ants <- usa_ants[grepl(" ", usa_ants$scientific_name),]
+# prep daymet data
+# must be called "daymet_data" for adDaymetTileIDs and addDaymetCellData to use
+source("src/prepDaymetData.R")
+daymet_data <- prepDaymetData("data/daymet_150m.csv")
 
-# remove local hours at 0, 1 or 24
-usa_ants <- filter(usa_ants, local_hour != 0)
-usa_ants <- filter(usa_ants, local_hour != 1)
-usa_ants <- filter(usa_ants, local_hour != 24)
 
-# add distance of foraging hour from 3 pm around the hottest time of the day
-usa_ants$midday_dist <- abs(usa_ants$local_hour - 15)
+# add daymet tile ids and cell data
+source("src/addDaymetTileIDs.R")
+source("src/addDaymetCellData.R")
+usa_ants <- addDaymetTileIDs(usa_ants, nsubset=100000)
+usa_ants <- addDaymetCellData(usa_ants)
 
-# add coding for day/night
-usa_ants$is_night <- usa_ants$local_hour <= 6 | usa_ants$local_hour >= 21
+usa_bfs <- addDaymetTileIDs(usa_bfs, nsubset=50000)
+usa_bfs <- addDaymetCellData(usa_bfs)
 
-# add local hour diff column
-usa_ants$local_hour_diff <- usa_ants$local_hour - mean(usa_ants$local_hour)
-# create day df with chopped off nighttimes from both sides
-library(dplyr)
-usa_ants_day <- filter(usa_ants, local_hour > 6)
-usa_ants_day <- filter(usa_ants_day, local_hour < 20)
+usa_insects <- addDaymetTileIDs(usa_insects, nsubset=50000)
+usa_insects <- addDaymetCellData(usa_insects)
 
-#filter for one common species
-library(dplyr)
-campo_p <- filter(usa_ants, scientific_name == "Camponotus pennsylvanicus")
-campo_c <- filter(usa_ants, scientific_name == "Camponotus castaneus")
-campo_a <- filter(usa_ants, scientific_name == "Camponotus americanus")
-l_humile <- filter(usa_ants, scientific_name == "Linepithema humile")
-p_imparis <- filter(usa_ants, scientific_name == "Prenolepis imparis")
-t_immigrans <- filter(usa_ants, scientific_name == "Tetramorium immigrans")
 
-#-----------------------
-# SUMMARIZE TO SPECIES & GENUS
-#summarize (condense) to species
+source("src/estimateSpeciesSeasonCellForaging.R")
+
+# get obs first to assess spatiotemporal size of dataset
+scc_obs <- getObsOnly(usa_bfs,usa_insects,cellsize_km = 200, min_per_cell_n=50,sample_cutoff_n = 150,floor_hours = F)
+
+# divide data into species season cells with difference metrics from baseline
+scc_estimates <- createBaselineDiffData3(usa_ants,usa_insects,cellsize_km=200,
+                                                weib_iters=35,weib_ci_iters = 10,weib_ci_bootstraps = 10, ncpus=1,
+                                                min_ants_n = 20, sample_cutoff_n = 150, floor_hours=FALSE,
+                                                first_n=1000,kl_bootstraps=35, skip_n=0,simple = TRUE,daymet_manova = FALSE)
+# or just import from a cluster analysis
+species_season_cells <- read.csv("data/cluster_exports/sp_season_cell_all_iter25_2.csv")
+species_season_cells <- finalizeCols(species_season_cells)
+species_season_cells <- dplyr::filter(species_season_cells, is_sig_onset_offset == TRUE)
+
+# below - slightly older stuff
 # quick func to get mode
 Mode <- function(x) {
     ux <- unique(x)
@@ -80,7 +82,7 @@ usa_ant_species <- usa_ants %>%
     summarise(meanHour = mean(local_hour), modeHour = Mode(local_hour), sdHour = sd(local_hour), n = n(), meanMD = mean(midday_dist),
               propNight = sum(is_night, na.rm = TRUE) / n(), latCor = cor(midday_dist,latitude))
 usa_ant_species$latCor <- format(usa_ant_species$latCor, scientific = FALSE)
-View(usa_ant_species)
+
 usa_ant_species_n100 <- filter(usa_ant_species, n >= 100)
 #plot species histograms
 hist(usa_ant_species_n100$meanHour)
@@ -100,13 +102,3 @@ usa_ant_genera_n100 <- filter(usa_ant_genera, n >= 100)
 # lat_thermal_foraging.R
 # color_foraging.R
 # species_overlap_foraging.R
-
-
-# ideas that have come up
-# use covariance matrix to adjust foraging times given baseline iNat activity
-# given all ants, see if other ants are found in location at time
-# download baseline iNat activity and randomly sample it to create baseline
-
-# notes
-# get folks on species_overlap_foraging
-#
