@@ -108,14 +108,16 @@ sp_season_cells_sig$cell <- as.factor(sp_season_cells_sig$cell)
 
 library(lme4)
 
-species_season_cells <- fi
+install.packages("lme4")
+library(lme4)
 # mixed effects model
 model <- lmer(q95 ~ cell_lat + season +
                   (1|cell) + (1|species) +
                   (0 + cell_lat | species) +
                   (0 + season | species),
-              data = sp_season_cells_sig)
-
+              data = scc_estimates,weights=scc_estimates$kl_div)
+summary(model)
+help('isSingular')
 # mixed effects model
 model <- lmer(q95 ~ cell_lat + season +
                 (1|species),
@@ -145,6 +147,7 @@ nrow(species_season_cells)
 # manova - hour is repsonse
 install.packages("sjPlot")
 install.packages("glmmTMB")
+install.packages("lattice")
 library(sjPlot)
 library(glmmTMB)
 library(lattice)
@@ -175,8 +178,9 @@ summary(model)
 
 temp <-dplyr::filter(species_season_cells, season=="1")
 plot_model(model,type="re",terms="species")
+View(model)
 library(ggplot2)
-plot_model(model,type="pred",terms="season") + labs(x="season",y="foraging offset hour",title="") +
+plot_model(model95,type="pred",terms="season") + labs(x="season",y="foraging offset hour",title="") +
     theme_grey()
 
 View(usa_ants)

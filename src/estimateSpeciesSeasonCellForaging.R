@@ -114,7 +114,7 @@ prepGriddedDataBL <- function(data, bl_data, cellsize_km){
     coordinates(data) <- cbind(data$latitude,data$longitude)
 
     # create SpatialGridDataFrame from data
-    grid <- makegrid(data, cellsize = cellsize_km) #cellsize_miles/69
+    grid <- makegrid(data, cellsize = cellsize_km/111) #cellsize_miles/69
     grid$id <- 1:length(grid$x1)
     coordinates(grid) <- cbind(grid$x1,grid$x2)
     gridded(grid) <- TRUE

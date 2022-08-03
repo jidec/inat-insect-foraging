@@ -50,8 +50,3 @@ addDaymetCellData <- function(df)
 
     return(out)
 }
-
-summarizeDaymetSeasons <- function(daymet)
-{
-    out <- data.frame()
-}
