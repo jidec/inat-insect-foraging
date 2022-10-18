@@ -1,3 +1,27 @@
+#get list of tip/trait labels that DONT have matching trait/tip data
+getMissing <- function(vector2drop, reference)
+{
+    missing <- vector(mode="character")
+    z <- 1
+
+    for(i in 1:length(vector2drop))
+    {
+        tip <- as.character(vector2drop[i])
+        match <- FALSE
+        for(k in 1:length(reference))
+        {
+            if(reference[k] == tip)
+            {
+                match <- TRUE
+            }
+        }
+        if(match == FALSE) {
+            missing[z] <- tip
+            z <- z + 1
+        }
+    }
+    return(missing)
+}
 
 # summarized traits is a df summarized to a clade (often genus or species) with the genus or speices column renamed "clade"
 # and a column called "trait
@@ -13,31 +37,6 @@ plotPhyloEffects <- function(summarized_traits,ape_tree)
     plot(ape_tree, show.tip.label=FALSE)
 
     traits <- summarized_traits
-
-    #get list of tip/trait labels that DONT have matching trait/tip data
-    getMissing <- function(vector2drop, reference)
-    {
-        missing <- vector(mode="character")
-        z <- 1
-
-        for(i in 1:length(vector2drop))
-        {
-            tip <- as.character(vector2drop[i])
-            match <- FALSE
-            for(k in 1:length(reference))
-            {
-                if(reference[k] == tip)
-                {
-                    match <- TRUE
-                }
-            }
-            if(match == FALSE) {
-                missing[z] <- tip
-                z <- z + 1
-            }
-        }
-        return(missing)
-    }
 
     #sort(ape_tree$tip.label)
     #sort(traits$clade)
@@ -110,4 +109,40 @@ plotPhyloEffects <- function(summarized_traits,ape_tree)
                        control=list())
 
     print(physig)
+}
+
+removeSpeciesNotInPhylo <- function(data,phylo)
+{
+    # drop traits
+    missing_traits <- getMissing(data$species, phylo$tip.label)
+    print(length(missing_traits))
+    if(length(missing_traits != 0))
+    {
+        for(i in 1:length(missing_traits))
+        {
+            data <- data[data[,"species"] != missing_traits[i],]
+        }
+    }
+    return(data)
+}
+
+# return a list of two adjusted data
+removePhyloMissing <- function(data,phylo)
+{
+    # drop traits
+    missing_traits <- getMissing(data$species, phylo$tip.label)
+    print(length(missing_traits))
+    if(length(missing_traits != 0))
+    {
+        for(i in 1:length(missing_traits))
+        {
+            data <- data[data[,"species"] != missing_traits[i],]
+        }
+    }
+
+    missing_tips <- getMissing(phylo$tip.label,data$species)
+    missing_tips <- as.character(missing_tips)
+    phylo <- drop.tip(phylo,missing_tips)
+
+    return(list(data,phylo))
 }

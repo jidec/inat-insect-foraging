@@ -1,13 +1,11 @@
 scc_estimates_bfs <- readRDS("data/scc_estimates_bfs")
-library(stringr)
-scc_hours_split <- str_split(scc_estimates_bfs[[2]],-1)
+scc_estimates_bfs[[1]]$season <- as.factor(scc_estimates_bfs[[1]]$season)
+# scc_estimates is the output of estimateSpeciesSeasonCellForaging
+# it is a list of two lists - the first is the season cell info, the second contains corresponding raw hours
 
-merged
-scc_estimates <- merged
-
+# extract bf hours and baseline hours
 bf_hours <- list()
 bf_bl_hours <- list()
-
 for(i in 1:length(scc_estimates_bfs[[2]]))
 {
     hours <- scc_estimates_bfs[[2]][[i]]
@@ -19,18 +17,180 @@ for(i in 1:length(scc_estimates_bfs[[2]]))
     bf_bl_hours <- c(bf_bl_hours,list(bl))
 }
 
-scc_estimates_bfs[[2]][[1]]
+# plot the bf and baseline hour for scc 2
+hist(bf_hours[[2]],xlim=c(5,24))
+hist(bf_bl_hours[[2]],xlim=c(5,24))
 
-hist(bf_bl_hours[[2]])
-hist(bf_hours[[2]])
-scc_estimates <- scc_estimates_bfs[[1]]
-scc_estimates[1]
-scc_estimates$season <- as.factor(scc_estimates$season)
+# extract sccs
+sccs <- scc_estimates_bfs[[1]]
 
-q5_model <- lm(q5 ~ season + tmax, data=scc_estimates)
+# add daymet data to sccs
+source("src/prepDaymetData.R")
+source("src/addClosestDaymetIDToSCCs.R")
+daymet_data <- prepDaymetData("data/daymet.csv")
+sccs <- addClosestDaymetIDToSCCs(sccs)
+
+#sccs <- join(sccs,daymet_data,by=c("daymet_tile", "season"),type='left')
+sccs <- merge(sccs, daymet_data, by = c("daymet_tile", "season"),how='left')
+
+# fix species names
+t <- str_split_fixed(sccs$species," ",3)
+sccs$species <- paste(t[,1],t[,2])
+
+# summarize sccs
+length(unique(sccs$cell)) # number of unique scc cells
+length(unique(sccs$daymet_tile)) # num of unique daymet tiles
+
+sccs <- sccs[!duplicated(sccs[ , c("season", "species","cell")]), ]
+
+# scale sccs or skip
+sccs <- transform(sccs,
+                        precip=scale(precip),
+                        srad=scale(srad),
+                        tmax=scale(tmax),
+                        tmin=scale(tmin),
+                        daylength=scale(daylength),
+                        vp = scale(vp),
+                        cell_lat = scale(cell_lat),
+                        cell_lon = scale(cell_lon))
+
+sccs$duration <- sccs$q95 - sccs$q5
+sccs_scaled$duration <- sccs_scaled$q95 - sccs_scaled$q5
+library(lme4)
+
+model <- lmer(duration ~ (precip + tmax + daylength)^2 + vp + srad + (1 | species) + (1 | cell),
+              data = sccs,weights=sccs$kl_div)
+model <- lmer(duration ~ precip + tmax + daylength + vp + srad + (1 | species) + (1 | cell) + precip:daylength,
+              data = sccs,weights=sccs$kl_div)
+vif(model)
+step(model)
+summary(model)
+model <- lmer(duration ~ precip + tmax + daylength + (1 | species) + (1 | cell) + precip:daylength + tmax:daylength,
+              data = sccs,weights=sccs$kl_div)
+summary(model)
+vif(model)
+
+# there to look at interaction
+plot_model(model,type="pred",terms=c("daylength","precip","tmax"))
+plot_model(model,type="pred",terms=c("daylength","precip"))
+# low dls, duration increases with more precip
+# in drought conditions strong effect vs wet conditions
+# if longer daylengths, negative relationship with precip
+# temp low, dl precip high, short duration
+#tmax:daylength is the biggest
+
+library(sjPlot)
+model <- lmer(duration ~ precip + tmax + season + cell_lat + daylength + (1 | species) + (1 | cell) + precip:season + tmax:vp + tmax:cell_lat + tmax:cell_lon + season:vp + season:cell_lat + vp:cell_lat + vp:daylength + cell_lat:daylength,
+              data = sccs,weights=sccs$kl_div)
+model_duration <- lmer(duration ~ precip + tmax + season + cell_lat + daylength + cell_lon + (1 | species) + (1 | cell) + precip:season + tmax:vp + tmax:cell_lat + tmax:cell_lon + season:vp + season:cell_lat + vp:cell_lat + vp:daylength + cell_lat:daylength,
+                  data = sccs,weights=sccs$kl_div)
+step(model_duration)
+
+model_duration <- lmer(duration ~ (precip + tmax + season + vp + cell_lat + daylength + cell_lon)^2 + (1 | species) + (1 | cell),
+                  data = sccs,weights=sccs$kl_div)
+
+model_q95 <- lmer(q95 ~ precip + tmin + season + (1 | species) + (1 | cell) + precip:season + tmin:season + vp:season,
+                  data = sccs,weights=sccs$kl_div)
+
+model_q95 <- lmer(q95 ~ precip + tmin + cell_lat + cell_lon + season + (1 | species) + (1 | cell) + precip:tmin + precip:season,
+                  data = sccs,weights=sccs$kl_div)
+
+library(car)
+
+vif(model_duration)
+model_q5 <- lmer(q95 ~ (tmin + daylength + vp)^2
+                  + (1|species) + (1|season) + (1|cell),
+                  data = sccs,weights=sccs$kl_div)
+sccs$
+install.packages("lmerTest")
+summary(model_duration)
+library(lmerTest)
+lmerTest::step(model_duration)
+
+# stepwise model reduction, reduce overfitting
+install.packages("performance")
+library(performance)
+r2_nakagawa(model_duration)
+# performance package - r2 for lmms, nakagawa
+# sjplot
+
+# variance inflation
+# carr package - vif function for model - if >5 there is multicollinearity
+# pglmm
+# 1|species__tree-calling-param
+# ncf corlog
+
+# look up variance inflation factors and condition numbers
+
+# get vifs for non phylogenetic model
+
+# look at residuals from
+# residual - structure of deviation of points from best fit line
+
+# slack jamm about meeting
+
+# spatial autocor - are residuals structured around space?
+# a phenomenna - we expect spatial structure in models
+# residual plot against distances - corlog R function
+
+install.packages("phyloseq")
+install.packages("ggridges")
+library(ape)
+sccs_and_phylo <- removeDataPhyloMissing(sccs,bf_tree)
+phy_sccs <- sccs_and_phylo[[1]]
+phy_sccs <- subset(phy_sccs, select=-c(32))
+phy_sccs$season <- as.factor(phy_sccs$season)
+phy <- sccs_and_phylo[[2]]
+phy$edge.length[which(is.na(phy$edge.length))] <- 0
+
+library(phyr)
+
+model_duration <- pglmm(duration ~ (tmax + precip)^2 + vp + daylength + (1 | species__) + (1 | cell), data = phy_sccs, cov_ranef = list(species=phy),bayes=T)
+plot_bayes(model_duration,sort=T)
+summary(model_duration)
+model <- phyr::pglmm(pres ~ disturbance + (1 | sp__) + (1 | site) +
+                       (disturbance | sp__) + (1 | sp__@site),
+                   data = oldfield$data,
+                   cov_ranef = list(sp = phy))
+install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable')
+
+model_q95 <- phyr::pglmm(q95 ~ tmin + daylength + vp
+                  + (1|species__) + (1|cell),
+                  data = phy_sccs,
+                  cov_ranef = list(species=phy),bayes=T)
+plot(phy)
+length(unique(phy_sccs$species))
+length(phy$tip.label)
+library(dplyr)
+phy_sccs <- phy_sccs %>% group_by(species) %>% filter(n()>=10)
+library(ape)
+sccs_and_phylo <- removeDataPhyloMissing(phy_sccs,phy)
+phy_sccs <- sccs_and_phylo[[1]]
+phy <- sccs_and_phylo[[2]]
+table(phy_sccs$species)
+install.packages("car")
+library(car)
+# the leading minor of order 1 is not positive definite
+# The error you are seeing occurs when some of the eigenvectors of the matrix
+# you are trying to operate on are not positive
+# (typically they'll be zero, or below some very small threshold);
+# this means, essentially, that your data are too noisy/small to estimate a full covariance matrix.
+
+library(sjPlot)
+dotplot(ranef(model_q95,condVar=T))
+plot_model(model_q95,type="pred",terms="season") + labs(x="season",y="foraging offset hour",title="") +
+    theme_grey()
+
+library(plyr)
+
+merged <- merged[,-33]
+merged <- merged[,-40]
+
+q5_model <-
+q5_model <- lm(q5 ~ season + tmax, data=sccs)
 summary(q5_model)
 
-q5_model_w <- lm(q5 ~ season + tmax + daylength, data=scc_estimates,weights=scc_estimates$kl_div)
+q5_model_w <- lm(q5 ~ season + tmax + daylength, data=sccs,weights=sccs$kl_div)
 summary(q5_model_w)
 
 q5_model_w_sp <- lm(q5 ~ cell_lat + season + species, data=scc_estimates,weights=scc_estimates$kl_div)
@@ -79,15 +239,35 @@ all_qs <- c(species_means_cutoff$mean_q5,species_means_cutoff$mean_q50,species_m
 hist(all_qs,xlim=c(1,24), breaks=24)
 hist(species_means_cutoff$mean_q50)
 
+library(lme4)
+model_duration_dl <- lmer(duration ~ precip + srad + tmax + tmin + daylength + vp
+                       + (0 + cell | species),
+                       data = sccs,weights=sccs$kl_div)
+model_duration_nondl <- lmer(duration ~ precip + srad + tmax + tmin + vp
+                       + (0 + cell | species),
+                       data = sccs,weights=sccs$kl_div)
+AIC(model_du)
 
-m_model_q95 <- lmer(q95 ~ cell_lat + season +
-                  (1|cell) + (1|species) +
+# check aic with and without daylength
+step(model_duration)
+
+
+model_q95 <- lmer(q95 ~ precip + srad + tmax + tmin + daylength + vp
+                      + (0 + cell | species),
+                  data = sccs_scaled,weights=sccs_scaled$kl_div)
+
+step(model_q95)
+
+model_q95 <- lmer(q95 ~ cell_lat + season +
                   (0 + cell_lat | species) +
                   (0 + season | species),
-              data = scc_estimates,weights=scc_estimates$kl_div)
+              data = sccs,weights=sccs$kl_div)
 
-dotplot(ranef(m_model_q95,condVar=T))
-plot_model(m_model_q95,type="pred",terms="season") + labs(x="season",y="foraging offset hour",title="") +
+library(ggplot2)
+library(sjPlot)
+library(lattice)
+dotplot(ranef(model,condVar=T))
+plot_model(model_q95,type="pred",terms="season") + labs(x="season",y="foraging offset hour",title="") +
     theme_grey()
 
 m_model_q5 <- lmer(q5 ~ cell_lat + season +
@@ -193,6 +373,7 @@ pca$rotation
 
 library(devtools)
 install_github("vqv/ggbiplot")
+
 library(ggbiplot)
 ggbiplot(pca)
 biplot(pca, scale = 0)
@@ -203,7 +384,7 @@ model <- lm(q50 ~ season + tmax + daylength + precip + srad + vp, data=merged) #
 summary(model)
 
 library(lme4)
-model<- lmer(q5 ~ season + tmax + daylength + precip + srad + vp +
+model <- lmer(q5 ~ season + tmax + daylength + precip + srad + vp +
                        (1|cell) + (1|species) +
                        (0 + cell_lat | species) +
                    data = merged,weights=merged$kl_div)
@@ -246,11 +427,10 @@ traits$species <- paste(genus,spe)
 colnames(traits) <- c("clade","trait","x","y")
 
 # load bf tree
+library(ape)
 bf_tree <- read.tree("data/misc/bf_species_tree.txt")
-
-View(ape_tree$tip.label)
-
 # mod tree tips
+library(dplyr)
 genus_tips <- strsplit(bf_tree$tip.label, " ") %>% sapply(extract2, 2)
 spe_tips <- strsplit(bf_tree$tip.label, " ") %>% sapply(extract2, 3)
 tips <- paste(genus_tips,spe_tips)

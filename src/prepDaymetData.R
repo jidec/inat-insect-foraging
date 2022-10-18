@@ -19,8 +19,7 @@ prepDaymetData <- function(data_location)
   }
 
   extracted <- apply(daymet_data,MARGIN=1,FUN=extractListedData)
-  extracted <- t(extracted)
-  extracted <- data.frame(extracted)
+  extracted <- do.call(rbind.data.frame, extracted)
   colnames(extracted) <- c("daylength","precip","srad","swe","tmax","tmin","vp")
   daymet_data <- cbind(daymet_data,extracted)
   daymet_data$daymet_tile <- daymet_data$tile

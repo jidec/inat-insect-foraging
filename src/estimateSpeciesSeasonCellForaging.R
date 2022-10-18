@@ -449,7 +449,7 @@ finalizeCols <- function(out)
 
     out$season <- as.factor(out$season)
     out$genus <- as.factor(out$genus)
-
+    out$duration <- out$q95 - out$q5
     return(out)
 }
 

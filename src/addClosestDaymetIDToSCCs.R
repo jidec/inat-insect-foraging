@@ -24,18 +24,3 @@ addClosestDaymetIDToSCCs <- function(sccs)
 
     return(df)
 }
-
-library(plyr)
-
-merged <- join(sccs,daymet_data,by=c("daymet_tile", "season"),type='left')
-merged <- merge(sccs, daymet_data, by = c("daymet_tile", "season"),how='left')
-
-merged <- sccs
-
-match(sccs$daymet_tile, daymet_data$daymet_tile)
-
-merged <- cbind(sccs, daymet_data[match(paste(sccs$daymet_tile, sccs$season), paste(daymet_data$daymet_tile, daymet_data$season)),])
-
-merged <- merged[,-33]
-merged <- merged[,-40]
-
