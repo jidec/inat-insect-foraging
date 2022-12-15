@@ -10,7 +10,7 @@ usa_insects <- prepGBIFiNatData("data/usa_insects_inat_gbif.csv")
 
 # download daymet data ONLY if haven't done so already
 source("src/downloadDaymetData.R")
-daymet_data <- downloadDaymetData(100)
+#daymet_data <- downloadDaymetData(100)
 
 # prep daymet data
 # must be called "daymet_data" for adDaymetTileIDs and addDaymetCellData to use
@@ -25,7 +25,12 @@ source("src/addDaymetCellData.R")
 #usa_ants <- addDaymetCellData(usa_ants)
 
 usa_bfs <- addDaymetTileIDs(usa_bfs, nsubset=50000)
-usa_bfs <- addDaymetCellData(usa_bfs)
-
 usa_insects <- addDaymetTileIDs(usa_insects, nsubset=50000)
-usa_insects <- addDaymetCellData(usa_insects)
+
+saveRDS(usa_bfs,"1")
+saveRDS(usa_insects,"2")
+
+# this is bugged and takes too long currently for usa insects
+usa_bfs <- addDaymetCellData(usa_bfs)
+#usa_insects <- addDaymetCellData(usa_insects)
+

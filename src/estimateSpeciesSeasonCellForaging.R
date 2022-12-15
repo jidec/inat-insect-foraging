@@ -118,7 +118,7 @@ prepGriddedDataBL <- function(data, bl_data, cellsize_km){
     grid$id <- 1:length(grid$x1)
     coordinates(grid) <- cbind(grid$x1,grid$x2)
     gridded(grid) <- TRUE
-    plot(grid,add=TRUE)
+    #plot(grid,add=TRUE)
     grid <- as(grid, "SpatialGridDataFrame")
 
     # spatial join and add cell info to points
@@ -377,6 +377,69 @@ batchCISimple <- function(row){
     # get mid
     q5 <- tryCatch(weib_percentile(observations = ant_hours, percentile = 0.05, iterations = weib_iters),
                     error = function(e) data.frame(estimate = NA, low_ci = NA, high_ci = NA))
+    # set n bootstraps and n samples
+    nsamples <- length(ant_hours)
+    kl_bootstraps <- 50
+    bootstrapped_divergences <- c()
+
+    #library(fitdistrplus)
+
+    #test <- rnorm(100,12,2)
+    #test <- round(test, digits = 0)
+    #test <- table(test)
+    #test <- test / sum(test)
+
+    #fw <- fitdist(test, "weibull")
+    #denscomp(fw)
+    #fw$fix.arg
+    #?fitdist
+    #t <- table(test)
+
+    for(b in 1:kl_bootstraps)
+    {
+        ant_sampled <- sample(ant_hours,nsamples,replace=TRUE)
+        ant_probs <- table(ant_sampled) / length(ant_sampled)
+        baseline_sampled <- sample(bl_hours,length(ant_sampled),replace=TRUE)
+        baseline_probs <- table(baseline_sampled) / length(baseline_sampled)
+        probs <- cbind(ant_probs,baseline_probs)
+        div <- KL(probs, test.na = TRUE, unit = "log2", est.prob = NULL, epsilon = 1e-05)
+
+        # append new divergence
+        bootstrapped_divergences <- c(bootstrapped_divergences,div)
+    }
+
+    # what summary statist
+    kl_div <- mean(bootstrapped_divergences)
+    kl_var <- var(bootstrapped_divergences)
+
+    rdf <- data.frame(q5 = q5, q5_low = 0, q5_high = 0,
+                      bl_q5 = 0, bl_q5_low = 0, bl_q5_high = 0,
+                      q50 = q50,
+                      q95 = q95, q95_low = 0, q95_high = 0,
+                      bl_q95 = 0, bl_q95_low =0, bl_q95_high = 0,kl_div=kl_div,kl_var=kl_var)
+    print("row finished")
+    return(rdf)
+}
+
+batchNew <- function(row){
+
+    # get ant and bl hours using split index
+    split_index <- which(row == -1)
+    ant_hours <- row[1:split_index-1]
+    bl_hours <- row[split_index+1:length(row)]
+    bl_hours <- bl_hours[!is.na(bl_hours)]
+
+    weib_iters <- 35
+
+    # get mid
+    q50 <- tryCatch(weib_percentile(observations = ant_hours, percentile = 0.5, iterations = weib_iters),
+                    error = function(e) data.frame(estimate = NA, low_ci = NA, high_ci = NA))
+    # get mid
+    q95 <- tryCatch(weib_percentile(observations = ant_hours, percentile = 0.95, iterations = weib_iters),
+                    error = function(e) data.frame(estimate = NA, low_ci = NA, high_ci = NA))
+    # get mid
+    q5 <- tryCatch(weib_percentile(observations = ant_hours, percentile = 0.05, iterations = weib_iters),
+                   error = function(e) data.frame(estimate = NA, low_ci = NA, high_ci = NA))
     # set n bootstraps and n samples
     nsamples <- length(ant_hours)
     kl_bootstraps <- 50

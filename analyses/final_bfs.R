@@ -30,7 +30,9 @@ sccs <- transform(sccs,
                   daylength=scale(daylength),
                   vp = scale(vp),
                   cell_lat = scale(cell_lat),
-                  cell_lon = scale(cell_lon))
+                  cell_lon = scale(cell_lon),
+                  wingspan = scale(wingspan),
+                  nsamples = scale(n))
 
 # fix species names
 t <- str_split_fixed(sccs$species," ",3)
@@ -102,9 +104,24 @@ phy_dur_model <- pglmm(duration ~ 0 + precip + tmax + daylength + vp + srad + (1
 
 summarizePlotPhySCCModel <- function(model)
 {
+    library(phyr)
     print(summary(model))
     plot_bayes(model_duration,sort=T)
     #plot_model(model,type="pred",terms="daylength")
 }
 
 summarizePlotPhySCCModel(phy_dur_model)
+
+
+# new traits lmer
+dur_model_traits <- lmer(duration ~ precip + tmax + daylength + vp + srad + (1 | species) + (1 | cell) + precip:daylength + wingspan + open_closed,
+                  data = sccs, weights=sccs$kl_div)
+summary(dur_model_traits)
+# these are ALL open or mixed, therefore
+
+
+# get 5th quantile of tmax
+high_tmax_sccs <- sccs[sccs$tmax > quantile(sccs$tmax,0.1),]
+high_tmax_dur <- lm(duration ~ wingspan,
+                         data = high_tmax_sccs, weights=high_tmax_sccs$kl_div)
+summary(high_tmax_dur)
