@@ -28,9 +28,11 @@ addNewForagingMetricsFromObs <- function(obs, nbins=-1, start_trim=-1,end_trim=-
         d_argmax_v <- c(d_argmax_v,as.numeric(names(which(d==max(d)))))
 
         d_dip <- c(d_dip, dip(d))
-
-        d_first_half_sum <- c(d_first_half_sum, sum(d[1:4]))
-        d_second_half_sum <- c(d_second_half_sum, sum(d[5:8]))
+        #print(length(d))
+        #print(sum(d[1:4]))
+        #print(sum(d[5:8]))
+        d_first_half_sum <- c(d_first_half_sum, sum(d[1:2]))
+        d_second_half_sum <- c(d_second_half_sum, sum(d[3:4]))
     }
 
     obs[[2]]$d_mean_v <- d_mean_v

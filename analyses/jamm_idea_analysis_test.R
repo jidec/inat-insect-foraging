@@ -29,13 +29,20 @@ getSpExpecDiffFromObs <- function(i,nbins=-1,obs){
 getSpExpecDiffFromObs(1,obs=obs1)
 
 source("src/addNewForagingMetricsFromObs.R")
-obs1 <- addNewForagingMetricsFromObs(obs1,nbins=8,start_trim =2,end_trim=1)
+obs1 <- addNewForagingMetricsFromObs(obs1,nbins=6,start_trim=1,end_trim=1)
 View(obs1[[2]])
-findpeaks(diff, npeaks=2, threshold=4, sortstr=TRUE)
-rm(test)
+#findpeaks(diff, npeaks=2, threshold=4, sortstr=TRUE)
 
 # trying predicting a diffs metric
 obs1[[2]]$species <- as.character(obs1[[2]]$species)
-View(obs1[[2]])
-model <- lm(d_dip ~ species + cell_lat, data=obs1[[2]])
+model <- lm(d_half1_sum ~ cell_lat, data=obs1[[2]])
 summary(model)
+
+# plot pc1
+pc1_rot <- c(0.43,-0.62,-0.44,0.39,0.24)
+plot(pc1_rot)
+
+pc2_rot <- c(0.02,-0.21,0.37,0.53,-0.72)
+plot(pc2_rot)
+
+# interesting thing - sum diffs is sig greater at lower lats
