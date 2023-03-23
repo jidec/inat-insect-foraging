@@ -1,6 +1,6 @@
-#cellsize_km = 150
 
-downloadDaymetData <- function(cellsize_km){
+# could potentially add capacity to download multiple years and label accordingly
+downloadSaveDaymetData <- function(cellsize_km){
     # prep inputs, download daymet data and merge the results into daymet.csv
     library(daymetr)
 
@@ -13,8 +13,6 @@ downloadDaymetData <- function(cellsize_km){
     usa_tiles <- filter(usa_tiles, YMin > 24.396 & YMin < 49.38) #& YMax < -49.384 & XMin > -124.848 &)
     usa_tiles <- filter(usa_tiles, XMin > -124.84 & XMin < -66.88)
     tile_ids <- usa_tiles$id
-
-    #nrow(filter(usa_ants, latitude < 24.396 | latitude > 49.38 | longitude < -124.84 | longitude > -66.88))
 
     # set lat and long to the center of each tile
     usa_tiles$X <- (usa_tiles$XMax + usa_tiles$XMin) / 2
@@ -29,41 +27,26 @@ downloadDaymetData <- function(cellsize_km){
     gridded(grid) <- TRUE
     grid <- as(grid, "SpatialGridDataFrame")
 
+    # make daymet_raw folder
+    dir.create(file.path("data", "daymet_raw"), showWarnings = FALSE)
+    dir.create(file.path("data/daymet_raw", "points"), showWarnings = FALSE)
+
     # write to .csv to feed into daymet func
     points <- cbind(grid$id,grid$x2,grid$x1)
     colnames(points) <- c("site","latitude","longitude")
     points <- as.matrix(points)
-    write.csv(points,"data/points_for_daymet.csv",row.names = FALSE)
+    write.csv(points,"data/daymet_raw/points/points_for_daymet.csv",row.names = FALSE)
 
     # download 16500 (max) tiles from these points
     download_daymet_batch(
-        file_location = "data/points_for_daymet.csv",
+        file_location = "data/daymet_raw/points/points_for_daymet.csv",
         start = 2020,
         end = 2021,
         internal = FALSE,
-        path = "data/daymet",
+        path = "data/daymet_raw",
         simplify = FALSE
     )
 
-
-    library(dplyr)
-    csv_files <- dir(path= "data/daymet", pattern='*.csv$', recursive = T)
-    csv_files <- paste0("data/daymet/", csv_files)
-    daymet_data <- data.frame()
-    for(i in 1:length(csv_files)) {
-        daymet_data <- rbind(daymet_data, read_daymet(csv_files[i]))
-    }
-
-    # season starts
-    #install.packages("lubridate")
-    #library(lubridate)
-    #yday(mdy("12/1/2000"))
-    #yday(mdy("3/1/2000"))
-    #yday(mdy("6/1/2000"))
-    #yday(mdy("9/1/2000"))
-
-    write.csv(daymet_data,file="data/daymet.csv")
-
-    return(daymet_data)
+    print("Finished downloading Daymet")
 }
 

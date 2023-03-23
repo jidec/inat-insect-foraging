@@ -1,5 +1,4 @@
-removeDataPhyloMissing <- function(data,phylo)
-{
+removeDataPhyloMissing <- function(data,phylo){
     library(ape)
     # drop traits
     missing_traits <- getMissing(data$species, phylo$tip.label)

@@ -1,0 +1,40 @@
+---
+title: "analyze_butterfly_activity"
+author: "Jacob Idec"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1: What is the best model formula by AIC removing multicollinear vars?
+
+```{r cars}
+vifsAndStep(sscs,response="q5",formula="tmax + daylength + vp + precip + srad + 
+                                                  + lat + wingspan",mixed=FALSE)
+
+vifsAndStep(sscs_8s_rmbf_250km_30nobs,response="q5",formula="tmax + daylength + precip + srad + 
+                                                  + lat",mixed=FALSE)
+vifsAndStep(sscs_8s_rmbf_250km_30nobs,response="q5",formula="tmax + daylength + precip +
+                                                  + lat",mixed=FALSE)
+
+# swap lat to tmax bc they are correlated and tmax is more interesting
+getPlotLM(sscs,model_type="lmer",response="q5",formula="tmax + daylength + precip +
+                                                  + (1|species)")
+getPlotLM(sscs,model_type="lmer",response="q50",formula="tmax + daylength + precip +
+                                                  + (1|species)")
+getPlotLM(sscs,model_type="lmer",response="q95",formula="tmax + daylength + precip +
+                                                  + (1|species)")
+
+getPlotLM(sscs,model_type="lmer",response="freq_pc1",formula="tmax + daylength + precip +
+                                                  + (1|species)")
+getPlotLM(sscs,model_type="lmer",response="freq_pc2",formula="tmax + daylength + precip +
+                                                  + (1|species)")
+
+# try pglmm
+getPlotLM(sscs_phytrim,model_type="pglmm",
+          phy=sscs_phy,
+          response="q50",formula="tmax + daylength + precip + lat + (1|species__)")
+```

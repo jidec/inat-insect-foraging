@@ -1,6 +1,7 @@
 
 # read in iNat data downloaded from GBIF, fix time and add some other cols
 # use with both target taxon and baseline
+
 prepGBIFiNatData <- function(data_location)
 {
   #import all usa ant observations

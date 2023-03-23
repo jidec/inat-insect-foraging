@@ -1,0 +1,112 @@
+---
+title: "describe_butterfly_activity"
+author: "Jacob Idec"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1: How is each response variable (metrics for when butterflies stop and start foraging or are most active) distributed and correlated?
+
+```{r responses, echo=FALSE}
+
+library(colorEvoHelpers)
+sscs <- sscs_8s_rmbf_250km_30nobs
+describeCols(sscs,colnames=c("q5","q50","q95",
+                             "diff_third1_mean","diff_third2_mean","diff_third3_mean"))
+
+```
+
+q5, q50, and q95 are normally distributed
+
+Some diffs are normal, others are tailed
+
+q50 is VERY correlated with q5 which is interesting and makes sense- as onset increases the peak also increases
+
+q50 is also cor with q95 - when peak is later, end is later
+
+Clear weird difference between q95 and diff third 3 - negatively correlated
+
+Clearly the weib and diff metrics mean very different things as they are not closely correlated
+
+## Q1: What is the distribution of when species relatively start, stop, and peak in foraging?
+
+All are pretty normally distributed
+
+```{r hists}
+library(colorEvoHelpers)
+sscs <- sscs_8s_rmbf_250km_30nobs
+describeCols(sscs,)
+
+sscs_8s_rmbf_250km_30nobs <- readRDS("saved.rds")
+plotHist(sscs_8s_rmbf_250km_30nobs,colname="q5")
+plotHist(sscs_8s_rmbf_250km_30nobs,colname="q50")
+plotHist(sscs_8s_rmbf_250km_30nobs,colname="q95")
+```
+
+## Q2: How is each predictor variable distributed and correlated?
+
+```{r preds, echo=FALSE}
+describeCols(sscs,colnames=c("tmax","daylength","vp","precip","srad",
+                                                  "lat","wingspan"))
+
+describeCols(sscs,colnames=c("species"),factor=TRUE)
+
+```
+
+Daylength and precip are pretty weird looking
+
+Vp extremely correlated with tmax and somewhat with precip
+
+Srad also correlated with daylength
+
+The vast majority of species represented have few SSCs, 40% of species have 3 or less SSCs
+
+## Q3: How are predictors and responses associated?
+
+```{r p_r, echo=FALSE}
+
+describeDfAssoc(sscs,colnames=c("q5","q50","q95",
+                             "diff_third1_mean","diff_third2_mean","diff_third3_mean",
+                              "tmax","daylength","vp","precip","srad",
+                                                  "lat","wingspan"))
+
+```
+
+Spot trends we might look more carefully at in models
+
+## Q4: how are individuals spatially distributed?
+
+```{r spatial_heatmap, echo=FALSE}
+sscs$latitude <- sscs$lat
+sscs$longitude <- sscs$lon
+plotLatLonHeatmap(sscs) # need to add lons in data prep first!! 
+```
+
+Actually not that bad
+
+## Q5: What do PCAs of the responses look like? How is the variation structured? Can we condense the difference metrics down or just the whole curves?
+
+```{r response_pca, echo=FALSE}
+pcdata <- runPlotBindPCA(na.omit(sscs),c("q5","q95","q50"))
+
+pcdata <- runPlotBindPCA(na.omit(sscs),c("q5","q95","q50","diff_third1_mean","diff_third2_mean","diff_third3_mean"))
+
+
+bound <- data.frame(do.call(rbind,sscs_8s_rmbf_250km_30nobs$hr_freqs))
+colnames(bound) <- str_replace(colnames(bound),"X","")
+pcdata <- prcomp(bound)
+plot(y=pcdata$rotation[,1],x=colnames(bound))
+plot(y=pcdata$rotation[,2],x=colnames(bound))
+
+# bind pcs to sscs happens in prep
+```
+
+For the PCA of quantiles, the big cloud is 0 for PC2 and slightly less than 0 for PC1 ( later mid and later onset)
+
+They they slowly disperse out to be postiive on PC1 (earlier mid and onset) , with a lot of variation in PC2 (later offset and earlier onset)
+
+Plotting the PCs of the WHOLE curves shows something similar

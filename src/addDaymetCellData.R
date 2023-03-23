@@ -1,5 +1,6 @@
 
-#df = usa_ants
+#df = usa_bfs
+daymet_data$
 # add temp precip etc data to observations using the year, yday, and daymet_tile cols
 addDaymetCellData <- function(df)
 {
