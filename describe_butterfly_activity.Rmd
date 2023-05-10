@@ -16,7 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(colorEvoHelpers)
 sscs <- sscs_8s_rmbf_250km_30nobs
 describeCols(sscs,colnames=c("q5","q50","q95",
-                             "diff_third1_mean","diff_third2_mean","diff_third3_mean"))
+                             "diff_third1_mean","diff_third2_mean","diff_third3_mean",
+                             "freq_pc1","freq_pc2","freq_pc3","freq_pc4"))
 
 ```
 
@@ -32,20 +33,7 @@ Clear weird difference between q95 and diff third 3 - negatively correlated
 
 Clearly the weib and diff metrics mean very different things as they are not closely correlated
 
-## Q1: What is the distribution of when species relatively start, stop, and peak in foraging?
-
-All are pretty normally distributed
-
-```{r hists}
-library(colorEvoHelpers)
-sscs <- sscs_8s_rmbf_250km_30nobs
-describeCols(sscs,)
-
-sscs_8s_rmbf_250km_30nobs <- readRDS("saved.rds")
-plotHist(sscs_8s_rmbf_250km_30nobs,colname="q5")
-plotHist(sscs_8s_rmbf_250km_30nobs,colname="q50")
-plotHist(sscs_8s_rmbf_250km_30nobs,colname="q95")
-```
+Freq_pc1 is heavily cor with q5, q50, and q95, which makes perfect sense bc it is a shift of activity later in the day
 
 ## Q2: How is each predictor variable distributed and correlated?
 
@@ -65,10 +53,17 @@ Srad also correlated with daylength
 
 The vast majority of species represented have few SSCs, 40% of species have 3 or less SSCs
 
+Looking at this, we probably want to drop vp and srad due to being correlated with others
+
 ## Q3: How are predictors and responses associated?
 
 ```{r p_r, echo=FALSE}
 
+describeCols(sscs,colnames=c("q5","q50","q95",
+                             "diff_third1_mean","diff_third2_mean","diff_third3_mean",
+                             "freq_pc1","freq_pc2","freq_pc3",
+                              "tmax","daylength","vp","precip","srad",
+                                                  "lat","wingspan"),corrplot_only = T)
 describeDfAssoc(sscs,colnames=c("q5","q50","q95",
                              "diff_third1_mean","diff_third2_mean","diff_third3_mean",
                               "tmax","daylength","vp","precip","srad",
@@ -77,6 +72,8 @@ describeDfAssoc(sscs,colnames=c("q5","q50","q95",
 ```
 
 Spot trends we might look more carefully at in models
+
+Freq_pc1 is heavily cor with srad - more srad means more obs earlier
 
 ## Q4: how are individuals spatially distributed?
 
@@ -88,25 +85,98 @@ plotLatLonHeatmap(sscs) # need to add lons in data prep first!!
 
 Actually not that bad
 
-## Q5: What do PCAs of the responses look like? How is the variation structured? Can we condense the difference metrics down or just the whole curves?
+## Q5: What do PCAs of the responses look like i.e how is the variation structured? What do the hour frequency PCs look like?
 
 ```{r response_pca, echo=FALSE}
+
 pcdata <- runPlotBindPCA(na.omit(sscs),c("q5","q95","q50"))
-
-pcdata <- runPlotBindPCA(na.omit(sscs),c("q5","q95","q50","diff_third1_mean","diff_third2_mean","diff_third3_mean"))
-
-
-bound <- data.frame(do.call(rbind,sscs_8s_rmbf_250km_30nobs$hr_freqs))
-colnames(bound) <- str_replace(colnames(bound),"X","")
-pcdata <- prcomp(bound)
-plot(y=pcdata$rotation[,1],x=colnames(bound))
-plot(y=pcdata$rotation[,2],x=colnames(bound))
-
-# bind pcs to sscs happens in prep
+sscs <- addHrFreqsToSSCs(sscs)
 ```
 
 For the PCA of quantiles, the big cloud is 0 for PC2 and slightly less than 0 for PC1 ( later mid and later onset)
 
 They they slowly disperse out to be postiive on PC1 (earlier mid and onset) , with a lot of variation in PC2 (later offset and earlier onset)
 
-Plotting the PCs of the WHOLE curves shows something similar
+Plotting the PCs of the WHOLE curves is pretty amazing though, with 77% of the variation in the curves being in 1 PC representing less foraging activity in the midday, the inverse can be interpreted as more activity in the midday!!!
+
+The 2nd PC explains the next 22%, and is basically a skew towards peaking earlier or later in the day!
+
+Later in analysis we will find that these are more phylogenetically conserved than other metrics
+
+## Q6: Is PC1 (in PCA without normalization) the baseline?
+
+```{r bl_pca, echo=FALSE}
+
+# plot insect obs
+library(readr)
+insect_obs <- read_delim("data/inat_obs_raw/usa_insects_inat_gbif.csv",delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+source("src/datetimeToSolarAndSeason.R")
+insect_obs <- datetimeToSolarAndSeason(insect_obs,season_intervals_per_year = 8)
+hist(insect_obs$local_hour[insect_obs$local_hour > 5 & insect_obs$local_hour < 19])
+
+# plot bfly obs
+bfly_obs <- read_delim("data/inat_obs_raw/usa_butterflies_inat_gbif.csv",delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+source("src/datetimeToSolarAndSeason.R")
+bfly_obs <- datetimeToSolarAndSeason(bfly_obs,season_intervals_per_year = 8)
+hist(bfly_obs$local_hour[bfly_obs$local_hour > 5 & bfly_obs$local_hour < 19])
+hist(insect_obs$local_hour[insect_obs$local_hour > 5 & insect_obs$local_hour < 19])
+
+source("src/addHrFreqsToSSCs.R")
+sscs <- addHrFreqsToSSCs(sscs,start_trim=7,end_trim=6)
+
+# one more phylo
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc3",trait_colname2="freq_pc1", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+cor.test(sscs_sp$freq_pc4,sscs_sp$mean_n_obs)
+#0.8048  0.1255 0.02303 0.01694 0.00854
+
+#plot(sscs$freq_pc1,sscs$))
+
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc3", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+cor.test(sscs$freq_pc3,sscs$freq_pc2)
+
+sscs <- addHrFreqsToSSCs(sscs,start_trim=7,end_trim=6)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc1", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc2", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc3", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc4", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc5", tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+
+# plot pc3 data for a particular species 
+# see what score for a ssc is on pc1, then look for species with high or low value for pc1, do the same thing for pc2 
+
+# everything like pc1 (0) are things that look like the observation effort curve 
+# currently if you're at the 0 value 
+
+cor.test(sscs$freq_pc1,sscs$daylength)
+
+cor.test(sscs$tmax,sscs$wingspan)
+```
+
+PC1 looks very similar to both the insect baseline and the bfly baseline
+
+It is the mean foraging curve that gets weighted up and down by the number of observations
+
+## Q7: Does SVD and eigenshape analysis show the same results as PCA?
+
+```{r preds, echo=FALSE}
+
+# visualize pcs of WHOLE curves, which turns out to be an interesting metric
+bound <- data.frame(do.call(rbind,sscs$hr_freqs))
+library(stringr)
+colnames(bound) <- str_replace(colnames(bound),"X","")
+svddata <- svd(bound) 
+pcdata <- prcomp(bound)
+
+plot(y=svddata$v[,1],x=colnames(bound))
+plot(y=pcdata$rotation[,1],x=colnames(bound))
+plot(y=svddata$v[,2],x=colnames(bound))
+plot(y=pcdata$rotation[,2],x=colnames(bound))
+plot(y=svddata$v[,3],x=colnames(bound))
+plot(y=svddata$v[,4],x=colnames(bound))
+
+```
+
+SVD is almost exactly the same

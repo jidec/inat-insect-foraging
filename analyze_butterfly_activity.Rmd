@@ -9,9 +9,97 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Q1: Which activity metrics are most distinctive? Do activities have a phylogenetic signature?
+
+```{r physig, results='hide'}
+library(colorEvoHelpers)
+
+source("src/addHrFreqsToSSCs.R")
+sscs <- addHrFreqsToSSCs(sscs,start_trim=6,end_trim=6,normalize=F,scale=T)
+
+# summarize to species for phylogenetic analysis
+library(dplyr)
+sscs_sp <- sscs %>%
+    group_by(species) %>%
+    dplyr::summarise(q5=mean(q5,na.rm=T),q50=mean(q50,na.rm=T),q95=mean(q95,na.rm=T),
+                     diff1=mean(diff_third1_mean,na.rm=T),
+                     diff2=mean(diff_third2_mean,na.rm=T),
+                     diff3=mean(diff_third3_mean,na.rm=T),
+                     pc1=mean(pc1,na.rm=T),pc2=mean(pc2,na.rm=T),
+                     freq_pc1=mean(freq_pc1,na.rm=T),freq_pc2=mean(freq_pc2,na.rm=T),
+                     freq_pc3=mean(freq_pc3,na.rm=T),freq_pc4=mean(freq_pc4,na.rm=T),
+                     freq_pc5=mean(freq_pc5,na.rm=T),
+                     shp_pc1 = mean(shp_pc1,na.rm=T),shp_pc2 = mean(shp_pc2,na.rm=T),
+                     wingspan=mean(wingspan,na.rm=T), mean_n_obs=mean(obs_n,na.rm=T), n_cells=n())
+
+sscs_sp$clade <- sscs_sp$species
+
+# get sp thresholds
+sscs_sp_10 <- dplyr::filter(sscs_sp,n_cells > 10)
+sscs_sp_20 <- dplyr::filter(sscs_sp,n_cells > 20)
+
+cor.test(sscs$freq_pc1,sscs$obs_n)
+# pcs
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc3",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc4",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# onsets/offsets
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q50",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q95",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# shape pcs
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="shp_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="shp_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# is shp pc2 cor with predictors?
+cor.test(sscs$shp_pc2,sscs$obs_n)
+cor.test(sscs$shp_pc2,sscs$tmax)
+cor.test(sscs$shp_pc2,sscs$daylength)
+
+# are predictors conserved?
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="n_cells",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="tmax",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q50",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q95",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# Hesperidae clearly has the most variation (evolution?) in activity
+# remove it and see if phylosigs become sig
+# need to load in iNat data for now bc family is not saved at present
+library(readr)
+bfly_obs <- read_delim("data/inat_obs_raw/usa_butterflies_inat_gbif.csv",delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+hesp_sp <- unique(filter(bfly_obs,family=="Hesperiidae")$species)
+sscs_sp_10_rm_hesp <- dplyr::filter(sscs_sp_10,!(species %in% hesp_sp))
+
+assessTraitsOnTree(df=sscs_sp_10_rm_hesp,trait_colname="pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10_rm_hesp,trait_colname="pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# is wingspan conserved?
+assessTraitsOnTree(df=sscs_sp,trait_colname="wingspan",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+describeCols(sscs,colnames=c("shp_pc2","wingspan","tmax","daylength","obs_n"),corrplot_only = T)
+
+sscs_sp_20$freq_pc4_inv <- -1 * sscs_sp_20$freq_pc4
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc4_inv",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="shp_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+```
+
+PC4 has signal
+
+q5, q50, and q95 kind of are but not nearly as much as PC1
+
 ## Q1: What is the best model formula by AIC removing multicollinear vars?
 
 ```{r cars}
+
+library(colorEvoHelpers)
+
 vifsAndStep(sscs,response="q5",formula="tmax + daylength + vp + precip + srad + 
                                                   + lat + wingspan",mixed=FALSE)
 
@@ -22,6 +110,8 @@ vifsAndStep(sscs_8s_rmbf_250km_30nobs,response="q5",formula="tmax + daylength + 
 
 # swap lat to tmax bc they are correlated and tmax is more interesting
 getPlotLM(sscs,model_type="lmer",response="q5",formula="tmax + daylength + precip +
+                                                  + (1|species) + (1|grid_id)")
+getPlotLM(sscs,model_type="lmer",response="q5",formula="tmax + daylength + precip +
                                                   + (1|species)")
 getPlotLM(sscs,model_type="lmer",response="q50",formula="tmax + daylength + precip +
                                                   + (1|species)")
@@ -29,8 +119,10 @@ getPlotLM(sscs,model_type="lmer",response="q95",formula="tmax + daylength + prec
                                                   + (1|species)")
 
 getPlotLM(sscs,model_type="lmer",response="freq_pc1",formula="tmax + daylength + precip +
-                                                  + (1|species)")
+                                                  + (1|species) + (1|grid_id)")
 getPlotLM(sscs,model_type="lmer",response="freq_pc2",formula="tmax + daylength + precip +
+                                                  + (1|species) + (1|grid_id)")
+getPlotLM(sscs,model_type="lmer",response="shp_pc2",formula="tmax + daylength + precip + wingspan +
                                                   + (1|species)")
 
 # try pglmm
@@ -38,3 +130,112 @@ getPlotLM(sscs_phytrim,model_type="pglmm",
           phy=sscs_phy,
           response="q50",formula="tmax + daylength + precip + lat + (1|species__)")
 ```
+
+## Q4: Do activities have a phylogenetic signature?
+
+```{r physig, results='hide'}
+library(colorEvoHelpers)
+
+# pcs
+sscs_sp_10$freq_pc1_inv <- -1 * sscs_sp_10$freq_pc1
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc1_inv",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# try 20 cutoff
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# onsets/offsets
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="q5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="q50",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="q95",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# Hesperidae clearly has the most variation (evolution?) in activity
+# remove it and see if phylosigs become sig
+# need to load in iNat data for now bc family is not saved at present
+library(readr)
+bfly_obs <- read_delim("data/inat_obs_raw/usa_butterflies_inat_gbif.csv",delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+hesp_sp <- unique(filter(bfly_obs,family=="Hesperiidae")$species)
+sscs_sp_10_rm_hesp <- dplyr::filter(sscs_sp_10,!(species %in% hesp_sp))
+
+assessTraitsOnTree(df=sscs_sp_10_rm_hesp,trait_colname="pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10_rm_hesp,trait_colname="pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# is wingspan conserved?
+assessTraitsOnTree(df=sscs_sp,trait_colname="wingspan",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+```
+
+PC1 is EXTREMELY phy cor while PC2 is not AT ALL
+
+q5, q50, and q95 kind of are but not nearly as much as PC1
+
+## Q3: What is the best model formula by AIC removing multicollinear vars for the curve PCs?
+
+```{r cars}
+
+library(colorEvoHelpers)
+
+vifsAndStep(sscs,response="freq_pc1",formula="tmax + daylength + vp + precip + srad + 
+                                                  + lat + wingspan",mixed=FALSE)
+vifsAndStep(sscs,response="freq_pc2",formula="tmax + daylength + vp + precip + srad + 
+                                                  + lat + wingspan",mixed=FALSE)
+
+getPlotLM(sscs,model_type="lmer",response="freq_pc1",formula="tmax + daylength + wingspan
+                                                  + (1|species)")
+getPlotLM(sscs,model_type="lmer",response="freq_pc2",formula="tmax + daylength + precip
+                                                  + (1|species)")
+
+# with grid id
+getPlotLM(sscs,model_type="lmer",response="freq_pc1",formula="tmax + daylength + precip + wingspan
+                                                  + (1|species) + (1|grid_id)")
+getPlotLM(sscs,model_type="lmer",response="freq_pc2",formula="tmax + daylength + wingspan
+                                                  + (1|species)")
+
+# try pglmm
+m <- getPlotLM(sscs,
+          tree_location = "data/misc/bf_species_tree.txt",remove_first_split=T,
+          model_type = "pglmm",bayes=F,
+          response="freq_pc1",formula="tmax + daylength + wingspan + (1 | species__)")
+
+m <- getPlotLM(sscs,
+          tree_location = "data/misc/bf_species_tree.txt",remove_first_split=T,
+          model_type = "pglmm",bayes=F,
+          response="freq_pc2",formula="tmax + daylength + precip + (1 | species__)")
+
+```
+
+## Q4: What are some possible issues with PC1? Is it related to sampling effort?
+
+```{r pc1_effort}
+
+library(colorEvoHelpers)
+
+sscs <- addHrFreqsToSSCs(sscs,start_trim=5,end_trim=5,normalize = T,scale=T)
+cor.test(sscs$wingspan,sscs$obs_n)
+cor.test(sscs_sp_10$wingspan,sscs_sp_10$n)
+
+cor.test(sscs$freq_pc1,sscs$obs_n)
+cor.test(sscs_sp_10$freq_pc1,sscs_sp_10$n)
+
+# investigate pc3 and 4 
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc3",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc4",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_10,trait_colname="freq_pc5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# investigate pc3 and 4 
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc3",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc4",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+```
+
+At the level, wingspan is only slightly correlated with sample size
+
+At the level of species SSCs, wingspan is more heavily correlated 0.35 with the number of SSCs, but not crazy
+
+However, there is a CRAZY cor of 0.99 between pc1 and the number of obs in an SSC

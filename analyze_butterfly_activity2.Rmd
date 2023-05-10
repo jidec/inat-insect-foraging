@@ -1,0 +1,130 @@
+---
+title: "analyze_butterfly_activity"
+author: "Jacob Idec"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1: Which activity metrics are most distinctive? Can we find activity metrics that have a phylogenetic signature?
+
+```{r physig, results='hide'}
+library(colorEvoHelpers)
+library(Momocs)
+sscs <- addHrFreqsToSSCs(sscs,start_trim=6,end_trim=6,normalize=T,scale=T)
+hr_freqs_shp <- sscs$hr_freqs
+for(i in 1:length(hr_freqs_shp)){
+    curve_mat <- cbind(as.numeric(names(hr_freqs_shp[[i]])),hr_freqs_shp[[i]])
+    curve_mat[,2] <- curve_mat[,2] /  max(curve_mat[,2])
+    curve_mat[,2] <- scale(curve_mat[,2],center=TRUE)
+    hr_freqs_shp[[i]] <- curve_mat
+    rownames(hr_freqs_shp[[i]]) <- NULL
+}
+shps <- Momocs::Opn(hr_freqs_shp)
+op <- opoly(shps, degree=5)
+op.p <- PCA(op)
+plot(op.p,cex=0.3)
+op.p$fac
+?plot.PCA
+
+sscs$shp_pc1 <- op.p$x[,1]
+sscs$shp_pc2 <- op.p$x[,2]
+
+# summarize to species for phylogenetic analysis
+library(dplyr)
+sscs_sp <- sscs %>%
+    group_by(species) %>%
+    dplyr::summarise(q5=mean(q5,na.rm=T),q50=mean(q50,na.rm=T),q95=mean(q95,na.rm=T),
+                     diff1=mean(diff_third1_mean,na.rm=T),
+                     diff2=mean(diff_third2_mean,na.rm=T),
+                     diff3=mean(diff_third3_mean,na.rm=T),
+                     pc1=mean(pc1,na.rm=T),pc2=mean(pc2,na.rm=T),
+                     freq_pc1=mean(freq_pc1,na.rm=T),freq_pc2=mean(freq_pc2,na.rm=T),
+                     freq_pc3=mean(freq_pc3,na.rm=T),freq_pc4=mean(freq_pc4,na.rm=T),
+                     freq_pc5=mean(freq_pc5,na.rm=T),
+                     shp_pc1 = mean(shp_pc1,na.rm=T),shp_pc2 = mean(shp_pc2,na.rm=T),
+                     wingspan=mean(wingspan,na.rm=T), mean_n_obs=mean(obs_n,na.rm=T), n_cells=n(),
+                     tmax=mean(tmax,na.rm=T),daylength=mean(daylength,na.rm=T))
+sscs_sp$clade <- sscs_sp$species
+sscs_sp_10 <- dplyr::filter(sscs_sp,n_cells > 10)
+sscs_sp_20 <- dplyr::filter(sscs_sp,n_cells > 20)
+
+# pcs
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc3",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc4",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="freq_pc5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# onsets/offsets
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q5",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q50",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="q95",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# shape pcs
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="shp_pc1",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="shp_pc2",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+# are pcs2 cor with predictors?
+describeCols(sscs,colnames=c("shp_pc2","freq_pc4", "wingspan","tmax","daylength","obs_n"),corrplot_only = T)
+
+# are predictors conserved?
+sscs_sp_20$n_cells <- as.numeric(sscs_sp_20$n_cells)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="n_cells",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="tmax",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+assessTraitsOnTree(df=sscs_sp_20,trait_colname="daylength",tree_location="data/misc/bf_species_tree.txt",remove_first_split=T,legend=T)
+
+```
+
+PC4 has signal
+
+q5, q50, and q95 kind of are but not nearly as much as PC1
+
+## Q2: What is the best model formula by AIC removing multicollinear vars?
+
+```{r cars}
+
+library(colorEvoHelpers)
+
+vifsAndStep(sscs,response="shp_pc2",formula="tmax + daylength + vp + precip + srad + 
+                                                  + lat + wingspan",mixed=FALSE)
+
+vifsAndStep(sscs,response="shp_pc2",formula="tmax + daylength + precip + srad + 
+                                                  + lat",mixed=FALSE)
+vifsAndStep(sscs,response="shp_pc2",formula="tmax + daylength + precip +
+                                                  + lat",mixed=FALSE)
+
+# swap lat to tmax bc they are correlated and tmax is more interesting
+getPlotLM(sscs,model_type="lmer",response="shp_pc2",formula="tmax + daylength + precip + wingspan + obs_n + (1|species)")
+
+getPlotLM(sscs,model_type="lmer",response="freq_pc1",formula="tmax + daylength + precip +
+                                                  + (1|species) + (1|grid_id)")
+getPlotLM(sscs,model_type="lmer",response="freq_pc2",formula="tmax + daylength + precip +
+                                                  + (1|species) + (1|grid_id)")
+getPlotLM(sscs,model_type="lmer",response="shp_pc2",formula="tmax + daylength + precip + wingspan +
+                                                  + (1|species)")
+
+# try pglmm
+getPlotLM(sscs_phytrim,model_type="pglmm",
+          phy=sscs_phy,
+          response="q50",formula="tmax + daylength + precip + lat + (1|species__)")
+```
+
+## Occupancy modeling?
+
+How can we fit this into an occupancy modeling framework?
+
+each site is one hour interval in an SSC
+
+site level covariates - temperature, precipitation, daylength, wingspan
+
+biological classes -
+
+observation level covariates - intensity of the observer baseline in the hour interval SSC
+
+would give probability of occupancy at each sp cell and time period
+
+ask rob how long occupancy is gonna fit

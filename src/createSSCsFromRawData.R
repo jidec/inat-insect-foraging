@@ -19,7 +19,8 @@
 createSSCsFromRawData <- function(taxon_obs_loc, baseline_obs_loc,
                                   season_intervals_per_year=4,rm_bfs_from_bl=TRUE,
                                   ssc_cellsize_km=250, ssc_n_obs_threshold=30,
-                                  diff_metric_nbins=8,diff_metric_trim=1,
+                                  start_hr_trim =1,end_hr_trim=1,
+                                  diff_metric_nbins=8,
                                   merge_leptraits=TRUE, add_weib_metrics=FALSE,write_rds_name=NULL){
     # save start time for elapsed
     start_time <- Sys.time()
@@ -83,10 +84,10 @@ createSSCsFromRawData <- function(taxon_obs_loc, baseline_obs_loc,
     # OPTION - how to bin and trim for difference metrics
     source("src/addDiffMetricsToSSCs.R")
     print("Adding difference metrics")
-    sscs <- addDiffMetricsToSSCs(sscs,nbins=8,start_trim = -1,end_trim=-1)
+    sscs <- addDiffMetricsToSSCs(sscs,nbins=8,start_trim = start_hr_trim,end_trim=end_hr_trim)
 
     source("src/addHrFreqsToSSCs.R")
-    sscs <- addHrFreqsToSSCs(sscs,start_trim=5,end_trim=5)
+    sscs <- addHrFreqsToSSCs(sscs,start_trim=start_hr_trim,end_trim=end_hr_trim)
 
     # merge leptraits data (wing size, habitat preference)
     if(merge_leptraits){
